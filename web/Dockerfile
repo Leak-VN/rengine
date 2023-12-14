@@ -9,7 +9,6 @@ ARG go_version=1.21.5
 ARG go_amd=go${go_version}.linux-amd64.tar.gz
 ARG go_arm=go${go_version}.linux-arm64.tar.gz
 
-ARG ARCH=$(dpkg --print-architecture)
 
 # Labels and Credits
 LABEL \
@@ -56,35 +55,37 @@ RUN apt install -y  --no-install-recommends \
 
 RUN add-apt-repository ppa:mozillateam/ppa
 
-RUN  if [ "${ARCH}" = "arm64" ]; then \
-    wget https://go.dev/dl/${go_arm} \
-    && tar -xvf ${go_arm} \
-    && rm ${go_arm} \
-    && mv go /usr/local; \
-  elif [ "${ARCH}" = "amd64" ]; then \
-    wget https://go.dev/dl/${go_amd} \
-    && tar -xvf ${go_amd} \
-    && rm ${go_amd} \
-    && mv go /usr/local; \
-  else \
-    echo "Unknown architecture: $ARCH" ; \
-    exit 1; \
-  fi
+RUN  ARCH=$(dpkg --print-architecture) \
+    && if [ "${ARCH}" = "arm64" ]; then \
+        wget https://go.dev/dl/${go_arm} \
+        && tar -xvf ${go_arm} \
+        && rm ${go_arm} \
+        && mv go /usr/local; \
+      elif [ "${ARCH}" = "amd64" ]; then \
+        wget https://go.dev/dl/${go_amd} \
+        && tar -xvf ${go_amd} \
+        && rm ${go_amd} \
+        && mv go /usr/local; \
+      else \
+        echo "Unknown architecture: $ARCH" ; \
+        exit 1; \
+      fi
 
 
 
-RUN if [ "${ARCH}" = "arm64" ]; then \
-    wget https://github.com/mozilla/geckodriver/releases/download/v${version}/${geckodriver_arm} \
-    && tar -xvf ${geckodriver_arm} \
-    && rm ${geckodriver_arm} \
-    && mv geckodriver /usr/bin; \
-  elif [ "${ARCH}" = "amd64" ]; then \
-    wget https://github.com/mozilla/geckodriver/releases/download/v${version}/${geckodriver_amd} \
-    && tar -xvf ${geckodriver_amd} \
-    && rm ${geckodriver_amd} \
-    && mv geckodriver /usr/bin; \
-  else \
-    echo "Unknown architecture: $ARCH" ; \
+RUN ARCH=$(dpkg --print-architecture) \
+    && if [ "${ARCH}" = "arm64" ]; then \
+      wget https://github.com/mozilla/geckodriver/releases/download/v${version}/${geckodriver_arm} \
+      && tar -xvf ${geckodriver_arm} \
+      && rm ${geckodriver_arm} \
+      && mv geckodriver /usr/bin; \
+    elif [ "${ARCH}" = "amd64" ]; then \
+      wget https://github.com/mozilla/geckodriver/releases/download/v${version}/${geckodriver_amd} \
+      && tar -xvf ${geckodriver_amd} \
+      && rm ${geckodriver_amd} \
+      && mv geckodriver /usr/bin; \
+    else \
+      echo "Unknown architecture: $ARCH" ; \
     exit 1; \
   fi
 
