@@ -1,5 +1,15 @@
 # Base image
-FROM --platform=linux/amd64 ubuntu:22.04
+FROM ubuntu:22.04
+
+ARG version=0.33.0
+ARG geckodriver_amd=geckodriver-v${version}-linux64.tar.gz
+ARG geckodriver_arm=geckodriver-v${version}-linux-aarch64.tar.gz
+
+ARG go_version=1.21.5
+ARG go_amd=go${go_version}.linux-amd64.tar.gz
+ARG go_arm=go${go_version}.linux-arm64.tar.gz
+
+ARG ARCH=$(dpkg --print-architecture)
 
 # Labels and Credits
 LABEL \
@@ -18,11 +28,10 @@ ENV PATH="${PATH}:${GOROOT}/bin:${GOPATH}/bin"
 
 # Install Python
 RUN apt update -y && \
-    apt update -y && \
     apt install -y \
     python3.10 \
     python3-dev \
-    python3-pip
+    python3-pip 
 
 # Install essential packages
 RUN apt install -y  --no-install-recommends \
@@ -47,17 +56,38 @@ RUN apt install -y  --no-install-recommends \
 
 RUN add-apt-repository ppa:mozillateam/ppa
 
-# Download and install go 1.20
-RUN wget https://golang.org/dl/go1.21.4.linux-amd64.tar.gz
-RUN tar -xvf go1.21.4.linux-amd64.tar.gz
-RUN rm go1.21.4.linux-amd64.tar.gz
-RUN mv go /usr/local
+RUN  if [ "${ARCH}" = "arm64" ]; then \
+    wget https://go.dev/dl/${go_arm} \
+    && tar -xvf ${go_arm} \
+    && rm ${go_arm} \
+    && mv go /usr/local; \
+  elif [ "${ARCH}" = "amd64" ]; then \
+    wget https://go.dev/dl/${go_amd} \
+    && tar -xvf ${go_amd} \
+    && rm ${go_amd} \
+    && mv go /usr/local; \
+  else \
+    echo "Unknown architecture: $ARCH" ; \
+    exit 1; \
+  fi
 
-# Download geckodriver
-RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.32.0/geckodriver-v0.32.0-linux64.tar.gz
-RUN tar -xvf geckodriver-v0.32.0-linux64.tar.gz
-RUN rm geckodriver-v0.32.0-linux64.tar.gz
-RUN mv geckodriver /usr/bin
+
+
+RUN if [ "${ARCH}" = "arm64" ]; then \
+    wget https://github.com/mozilla/geckodriver/releases/download/v${version}/${geckodriver_arm} \
+    && tar -xvf ${geckodriver_arm} \
+    && rm ${geckodriver_arm} \
+    && mv geckodriver /usr/bin; \
+  elif [ "${ARCH}" = "amd64" ]; then \
+    wget https://github.com/mozilla/geckodriver/releases/download/v${version}/${geckodriver_amd} \
+    && tar -xvf ${geckodriver_amd} \
+    && rm ${geckodriver_amd} \
+    && mv geckodriver /usr/bin; \
+  else \
+    echo "Unknown architecture: $ARCH" ; \
+    exit 1; \
+  fi
+
 
 # Make directory for app
 WORKDIR /usr/src/app
